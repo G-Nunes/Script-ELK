@@ -1,0 +1,66 @@
+13 de fevereiro			
+	cd /home/nunes/csv-update && { curl -O https://raw.githubusercontent.com/G-Nunes/data-semanal/main/fev-13-vacinados.csv  ; cd -;}
+
+sudo shutdown -r now
+
+sudo nano /etc/logstash/conf.d/update-vac-13-fev-logstash.conf
+
+input {
+	file {
+		path => "/home/nunes/csv-update/fev-13-vacinados.csv"
+		start_position => "beginning"
+		sincedb_path => "/dev/null"
+	}
+}
+
+filter{
+	csv{
+		separator => ","
+		skip_header => "true"
+		columns => ["CRS","REGIAO_SAU","MUNICIPIOS","TOTAL_DOSES_LIBERADAS","TRAB_SAUDE_75","TRAB_SAUDE_75_VAC_D1","TRAB_SAUDE_75_VAC_D2","INDIGENAS","INDIGENAS_VAC_D1","INDIGENAS_VAC_D2","MAIOR_60","MAIOR_60_VAC_D1","MAIOR_60_VAC_D2","IDOSOS_80e","IDOSOS_80e_VAC_D1","IDOSOS_80e_VAC_D2","META_1a_FASE","TOTAL_VAC_D1","TOTAL_VAC_D2","TOTAL_VAC","TOTAL_VAC_SIPNI","FUN_BUT","FUN_OSW","DoA","DoB"]
+	}
+	mutate{
+		convert => {
+			"TOTAL_DOSES_LIBERADAS" => "float"
+			"TRAB_SAUDE_75" => "float"
+			"TRAB_SAUDE_75_VAC_D1" => "float"
+			"TRAB_SAUDE_75_VAC_D2" => "float"
+			"INDIGENAS" => "float"
+			"INDIGENAS_VAC_D1" => "float"
+			"INDIGENAS_VAC_D2" => "float"
+			"MAIOR_60" => "float"
+			"MAIOR_60_VAC_D1" => "float"
+			"MAIOR_60_VAC_D2" => "float"
+			"IDOSOS_80e" => "float"
+			"IDOSOS_80e_VAC_D1" => "float"
+			"IDOSOS_80e_VAC_D2" => "float"
+			"META_1a_FASE" => "float"
+			"TOTAL_VAC_D1" => "float"
+			"TOTAL_VAC_D2" => "float"
+			"TOTAL_VAC" => "float"
+			"TOTAL_VAC_SIPNI" => "float"
+			"FUN_BUT" => "float"
+			"FUN_OSW" => "float"
+			"DoA" => "float"
+			"DoB" => "float"
+			
+		}
+		remove_field => ["message","@timestamp","path","host","@version"]
+	}
+}
+
+output {
+	elasticsearch {
+		hosts => "http://localhost:9200"
+		index => "fev-13-vac-update"
+		user => "elastic"
+                ssl_certificate_verification => false
+                password => "s3rp3nt3"
+	}
+
+	stdout {
+		codec => rubydebug	
+	}
+}
+
+sudo /usr/share/logstash/bin/logstash -f /etc/logstash/conf.d/update-vac-13-fev-logstash.conf
